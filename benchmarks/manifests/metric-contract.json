@@ -1,5 +1,24 @@
 {
   "aggregation_rule": "Never pool sources into one universal accuracy. Report task/source strata and denominators.",
+  "answer_set_examples": {
+    "scope": "Optional synthetic FAQ cohort; excluded from the frozen phase-1 matrix and headline claims.",
+    "schema": {
+      "answer_set": "Unique, nonempty declared semantic option IDs.",
+      "target_distribution": "Finite values in [0,1], abs(sum - 1) <= 0.0001, and strictly positive support exactly equals answer_set; accepted targets are normalized before expected metrics.",
+      "prediction_distribution": "Finite values in [0,1] with abs(sum - 1) <= 0.0001.",
+      "multi_answer": "Must omit label, target_option_id, and target_letter.",
+      "singleton_projection": "Optional complete label/target_option_id/target_letter projection; all fields must agree with the singleton answer_set and option index."
+    },
+    "metrics": {
+      "expected_nll": "Expectation under normalized target_distribution with a 1e-12 prediction floor; full cohort only when every row has a distribution.",
+      "brier": "Expected multiclass Brier score under normalized target_distribution; full cohort only when every row has a distribution.",
+      "acceptable_set_probability_mass": "Sum of predicted mass on answer_set; full cohort only when every row has a distribution.",
+      "top_1_in_set": "Full-cohort rate; exact ties are in-set only when every tied maximum is acceptable. Native predictions provide this metric, but no probability metric.",
+      "valid_only_denominators": "The *_valid_distributions_only metrics use valid distributions; top_1_in_set_valid_decisions_only uses parsed decisions."
+    },
+    "hard_only_paths": "Screening and paired comparison accept legacy hard rows and complete singleton projections; reject unprojected singleton and multi-answer rows.",
+    "heldout_source_review": "Independently review heldout or sourced rows before evaluation or claims."
+  },
   "frozen_before_reranker_outputs": true,
   "metrics": {
     "authored_wanli": "Hard-label accuracy, balanced accuracy, NLL/Brier, source-group intervals; populations separate.",

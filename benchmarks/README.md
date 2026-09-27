@@ -59,6 +59,12 @@ The 6.7 MB fixture is project-authored and has SHA-256 `8dcf414b12fc2684e3c4ca5f
 - `../results/raw/quality-comparison.json` contains the complete aggregate reports behind the README table.
 - `evaluate.py` recomputes hard-label accuracy, balanced accuracy, F1, probability metrics, and paired source-group bootstrap intervals.
 
+### Optional answer-set cohorts
+
+`evaluate.py` also accepts a separate synthetic FAQ answer-set contract. A row with `answer_set` must declare unique, nonempty semantic option IDs and a `target_distribution`; target and predicted distributions use finite values in `[0, 1]` and sum within `1e-4` of one. Positive target support must equal the answer set exactly, and tolerance-accepted targets are renormalized before expected metrics. Multi-answer rows omit `label`, `target_option_id`, and `target_letter`. Singleton rows may omit those fields or provide all three as a matching hard projection.
+
+The answer-set cohort reports expected NLL, Brier score, acceptable-set probability mass, and top-1-in-set. Exact tied maxima are in-set only when every tied option is acceptable, independent of option order. Top-1 uses the full answer-set cohort denominator; probability metrics require valid distributions for every row, with `*_valid_distributions_only` variants retaining their valid-distribution denominator. Native predictions supply no probability metrics and only top-1-in-set, except that a valid singleton hard projection also remains eligible for hard-label classification, screening, and paired comparison. This contract does not alter the frozen phase-1 matrix or its headline claims. Independently review heldout or sourced data before adding it to an evaluated cohort.
+
 Fetch the exact external snapshots:
 
 ```bash
