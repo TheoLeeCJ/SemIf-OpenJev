@@ -68,6 +68,8 @@ bit for bit. One loaded backend owns one stateful scoring context. For a much
 slower full-precision Torch reference path, explicitly pass
 `--device cpu --dtype float32` to the standard scorer command.
 
+**SGLang server:** `--backend sglang` scores the same prompts through a running SGLang server that contains sgl-project/sglang#40826 (SGLang main from commit 174a5f37 of 2026-09-24 on, or a nightly from 0.5.21.dev20260925 on). The pinned reference tokenizer still builds every prompt, so `prompt_sha256` matches the Torch backend row for row, and the server scores those token ids on its own GPU. `--sglang-url` names the server (default `http://127.0.0.1:30000`). Scores can differ from Torch, and shared mode on SGLang does not guarantee a single prefill of the state. The [SGLang guide](docs/SGLANG.md) has the server launch and the refused server settings.
+
 Run the owned examples:
 
 ```bash
@@ -190,6 +192,7 @@ Returned probabilities are conditional on the supplied options. Calibrate and va
 - [Method](docs/METHOD.md) — frozen prompts, metrics, and timing scope
 - [Reproduce](docs/REPRODUCE.md) — exact environment, pinned commands, perturbations, and verification
 - [Apple Silicon](docs/APPLE_SILICON.md) — MPS and optional MLX backends
+- [SGLang server backend](docs/SGLANG.md)
 - [Calibration](docs/CALIBRATION.md) — fitted temperatures, out-of-fold evidence, and application
 - [EXL3 bridge](exl3-bridge/README.md) — quantized 27B runner and committed evidence
 - [Interactive replay](demo/index.html)
