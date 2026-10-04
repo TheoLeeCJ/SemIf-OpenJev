@@ -56,7 +56,7 @@ def main() -> None:
             parser.error("llama.cpp supports direct, serial, and shared modes; reranker requires torch")
         if args.gguf is None or not args.gguf.is_file():
             parser.error("--backend llamacpp requires --gguf pointing at an existing GGUF file")
-    rows = [json.loads(line) for line in args.input.read_text().splitlines() if line.strip()]
+    rows = [json.loads(line) for line in args.input.read_text(encoding="utf-8").splitlines() if line.strip()]
     if not rows:
         parser.error("Input is empty")
     for row in rows:
@@ -86,7 +86,7 @@ def main() -> None:
             args.device = "cuda"
         model, tokenizer, metadata = load_causal_model(args.model, args.revision, args.device, args.dtype)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("x") as destination:
+    with args.output.open("x", encoding="utf-8") as destination:
         if args.mode == "shared":
             results, timing = shared(model, tokenizer, rows, metadata, args.max_tokens)
             for result in results:

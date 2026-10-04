@@ -161,3 +161,22 @@ def test_existing_output_is_not_overwritten(run_cli, backends, capsys):
     assert run_cli.output.read_bytes() == original
     backends.torch.load_causal_model.assert_not_called()
     backends.mlx.load_model.assert_not_called()
+
+
+def test_input_is_read_as_utf8_regardless_of_locale(tmp_path, monkeypatch):
+    state = "Le café est prêt — 日本語 “hi”"
+    row = {"id": "u", "state": state, "question": "Ready?",
+           "options": [{"id": "yes", "description": "Yes"}, {"id": "no", "description": "No"}]}
+    source = tmp_path / "input.jsonl"
+    source.write_bytes((json.dumps(row, ensure_ascii=False) + "\n").encode("utf-8"))
+    seen = []
+    monkeypatch.setattr(cli, "load_causal_model", lambda *args: (object(), object(), {}))
+    monkeypatch.setattr(cli, "direct_score", lambda model, tok, r, meta, limit: seen.append(r["state"]) or {"id": r["id"]})
+    monkeypatch.setattr(sys, "argv", ["semif-score", "--mode", "direct", "--model", "m", "--revision", "a" * 40,
+                                      "--input", str(source), "--output", str(tmp_path / "out.jsonl")])
+    real = cli.Path.read_text
+    # Emulate a cp1252 Windows locale: read_text() without encoding= decodes with it.
+    monkeypatch.setattr(cli.Path, "read_text",
+                        lambda self, encoding=None, errors=None: real(self, encoding=encoding or "cp1252", errors=errors))
+    cli.main()
+    assert seen == [state]
