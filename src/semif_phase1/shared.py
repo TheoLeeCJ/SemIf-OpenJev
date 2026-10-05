@@ -143,16 +143,30 @@ def score_shared(model, tokenizer, rows: list[dict], metadata: dict, max_tokens:
                 output.logits[index, selected_positions.index(ends[index]), :].float() for index in range(len(rows))
             ]
         results = []
+        padded_suffix = (
+            None
+            if looped
+            else len(layout["input_ids"][0])
+        )
         for index, (row, (ids, slots, prompt_hash)) in enumerate(zip(rows, encoded)):
             vocabulary = vocabularies[index]
-            selected = vocabulary[slots].cpu().tolist()
+            selected_tensor = vocabulary[slots]
+            selected = selected_tensor.cpu().tolist()
+            true_suffix = len(ids) - len(prefix)
             results.append(
                 {
                     "id": row["id"],
                     "option_ids": [option["id"] for option in row["options"]],
                     "probabilities": softmax(selected),
                     "option_logits": selected,
+                    "answer_token_ids": slots if isinstance(slots, list) else list(slots),
                     "input_tokens": len(ids),
+                    "allowed_token_mass": float(
+                        (selected_tensor.logsumexp(-1) - vocabulary.logsumexp(-1)).exp()
+                    ),
+                    "full_vocab_argmax_id": int(vocabulary.argmax()),
+                    "batch_size": len(rows),
+                    "padded_tokens": true_suffix if padded_suffix is None else padded_suffix,
                     "prompt_sha256": prompt_hash,
                     "prompt_version": PROMPT_VERSION,
                     "model": {**metadata, "serving_config": (
