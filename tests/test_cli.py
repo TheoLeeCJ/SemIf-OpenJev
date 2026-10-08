@@ -140,7 +140,7 @@ def test_torch_reranker_rejects_non_cuda_device_before_loading(run_cli, backends
     with pytest.raises(SystemExit) as error:
         run_cli.run("reranker", "--device", device)
     assert error.value.code == 2
-    assert "Reranker mode requires CUDA" in capsys.readouterr().err
+    assert "requires Torch's cuda device namespace (CUDA or ROCm)" in capsys.readouterr().err
     assert backends.torch.reranker_score.call_count == 2
 
 

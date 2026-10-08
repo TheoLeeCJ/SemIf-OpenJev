@@ -69,6 +69,22 @@ def digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def torch_accelerator_metadata(torch, device) -> dict:
+    """Identify the accelerator behind a resolved Torch device."""
+    accelerator = getattr(device, "type", str(device).split(":", 1)[0])
+    version = None
+    if accelerator == "cuda":
+        hip = getattr(getattr(torch, "version", None), "hip", None)
+        if hip:
+            accelerator, version = "rocm", hip
+        else:
+            version = getattr(getattr(torch, "version", None), "cuda", None)
+    metadata = {"torch_accelerator": accelerator}
+    if version:
+        metadata["torch_accelerator_version"] = str(version)
+    return metadata
+
+
 def resolve_device(device: str = "auto"):
     import torch
 
@@ -78,7 +94,12 @@ def resolve_device(device: str = "auto"):
         device = "cuda" if torch.cuda.is_available() else "mps"
     if device == "cuda":
         if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
-            raise ValueError("Expose exactly one CUDA GPU, for example with CUDA_VISIBLE_DEVICES")
+            if getattr(getattr(torch, "version", None), "hip", None):
+                raise ValueError(
+                    "Expose exactly one ROCm GPU through Torch's cuda device namespace, "
+                    "for example with ROCR_VISIBLE_DEVICES=0"
+                )
+            raise ValueError("Expose exactly one CUDA GPU, for example with CUDA_VISIBLE_DEVICES=0")
         return torch.device("cuda:0")
     if device == "cpu":
         return torch.device("cpu")
@@ -137,5 +158,6 @@ def load_causal_model(source: str, revision: str, device: str = "auto", dtype: s
         "device": str(target),
         "torch_version": torch.__version__,
         "transformers_version": transformers.__version__,
+        **torch_accelerator_metadata(torch, target),
     }
     return model, tokenizer, metadata
