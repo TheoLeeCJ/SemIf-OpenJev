@@ -96,7 +96,7 @@ def score_shared(model, tokenizer, rows: list[dict], metadata: dict, max_tokens:
             raise RuntimeError("Invalid native prefix cache")
         if not callable(getattr(cache, "reorder_cache", None)):
             raise RuntimeError("Native cache does not support duplicate branch selection")
-        # MPS is faster with independent batch-1 suffixes; CUDA stays batched.
+        # MPS is faster with independent batch-1 suffixes; CUDA/ROCm stays batched.
         looped = device.type == "mps"
         replicate_seconds = 0.0
         suffix_seconds = 0.0

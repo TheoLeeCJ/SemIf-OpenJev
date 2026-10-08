@@ -29,7 +29,8 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--max-tokens", type=int, default=4096)
     parser.add_argument("--device", choices=("auto", "cuda", "mps", "cpu"), default="auto",
-                        help="Torch device (auto prefers CUDA, then Apple MPS; CPU must be explicit)")
+                        help=("Torch device (ROCm uses cuda; auto prefers CUDA/ROCm, then Apple MPS; "
+                              "CPU must be explicit)"))
     parser.add_argument("--dtype", choices=("bfloat16", "float16", "float32"), default="bfloat16",
                         help="Model precision; changing it can change option scores")
     args = parser.parse_args()
@@ -81,8 +82,11 @@ def main() -> None:
     else:
         if args.mode == "reranker":
             if args.device in {"mps", "cpu"}:
-                parser.error(f"Reranker mode requires CUDA; --device {args.device} is unsupported")
-            # Keep auto CUDA-only and let the loader enforce one visible GPU.
+                parser.error(
+                    "Reranker mode requires Torch's cuda device namespace (CUDA or ROCm); "
+                    f"--device {args.device} is unsupported"
+                )
+            # Keep auto on Torch's cuda namespace and let the loader enforce one visible GPU.
             args.device = "cuda"
         model, tokenizer, metadata = load_causal_model(args.model, args.revision, args.device, args.dtype)
     args.output.parent.mkdir(parents=True, exist_ok=True)

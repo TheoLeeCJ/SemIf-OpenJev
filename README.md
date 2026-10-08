@@ -45,7 +45,11 @@ Install `pip install -e '.[test,mlx]'` and add `--backend mlx` to the scorer com
 PyTorch/MPS (`--device mps`) is also supported for direct, serial, and shared modes — see
 [Apple Silicon](docs/APPLE_SILICON.md).
 
-Python 3.10+, CUDA, and a GPU that can hold a 4B BF16 model:
+**AMD GPUs:** the core Torch backend supports ROCm for direct, serial, shared,
+and reranker modes. ROCm keeps PyTorch's canonical `cuda` device spelling; see
+[ROCm](docs/ROCM.md) for the pinned wheel, device-isolation, and validation steps.
+
+Python 3.10+, CUDA or ROCm, and a GPU that can hold a 4B BF16 model:
 
 ```bash
 python -m venv .venv
@@ -55,7 +59,7 @@ pip install -e '.[test]'
 ```
 
 **CPU only:** the llama.cpp backend scores the same prompts from a local GGUF
-checkpoint with no CUDA device. Install `pip install -e '.[test,llamacpp]'`,
+checkpoint with no Torch GPU device. Install `pip install -e '.[test,llamacpp]'`,
 fetch a GGUF (for example `Qwen_Qwen3.5-4B-Q4_K_M.gguf` from
 `bartowski/Qwen_Qwen3.5-4B-GGUF`), and add `--backend llamacpp --gguf
 /path/to/model.gguf`; `--llama-threads` caps the CPU threads. Prompt

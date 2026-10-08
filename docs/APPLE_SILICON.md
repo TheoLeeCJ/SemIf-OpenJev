@@ -23,7 +23,7 @@ semif-score --mode direct --device mps \
   --model Qwen/Qwen3.5-4B --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
   --input examples/decisions.jsonl --output results-mps-direct.jsonl
 
-# MLX (direct/serial/shared; reranker is CUDA-only):
+# MLX (direct/serial/shared; reranker requires Torch CUDA or ROCm):
 semif-score --backend mlx --mode direct \
   --model Qwen/Qwen3.5-4B --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
   --input examples/decisions.jsonl --output results-mlx-direct.jsonl
@@ -33,13 +33,14 @@ semif-score --backend mlx --mode direct \
 
 - Both backends preserve the prompt contracts: identical chat template, token
   boundaries, and prompt hashes; scores carry the same uncalibrated-probability
-  warnings as CUDA output.
+  warnings as Torch GPU output.
 - Shared mode on both Apple backends prefills once, then forwards independent
-  batch-1 suffixes rather than a parallel batch. CUDA keeps its batched path.
+  batch-1 suffixes rather than a parallel batch. CUDA and ROCm keep their batched path.
 - Timing fields are device-synchronized on both backends. Shared timing separates
   prompt encoding, prefix prefill, cache replication/copying, and suffix forwards.
-- The reranker and published CUDA benchmark runners remain CUDA-only. Use the
-  `semif-score` commands above for Apple Silicon.
+- The reranker remains unavailable on MLX and MPS; it supports Torch CUDA and ROCm.
+  Published benchmark evidence remains CUDA. Use the `semif-score` commands above
+  for Apple Silicon.
 
 ## Measured on an M5 (24 GB), pinned Qwen3.5-4B, BF16
 

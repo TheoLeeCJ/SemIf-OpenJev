@@ -15,6 +15,10 @@ pytest -q
 
 Use one GPU per scorer process. The measured environment was Ubuntu 22.04 on Linux x86_64, Python 3.10.12, NVIDIA driver 595.71.05, CUDA 12.8, PyTorch 2.10.0+cu128, Transformers 5.17.0, BF16, and an RTX 3090. `requirements.txt` pins the observed Python runtime packages; the CUDA-enabled PyTorch wheel still requires a compatible NVIDIA driver. Exact model commit IDs are in [../manifests/models.json](../manifests/models.json).
 
+For AMD GPUs, follow the [ROCm installation and validation guide](ROCM.md).
+ROCm is an additive Torch runtime path and does not change the NVIDIA environment
+or the committed RTX 3090 measurements above.
+
 `pytest -q` runs all core and browser-source tests. Timing is hardware-sensitive, and BF16/kernel differences can change borderline probabilities or choices. Treat committed row counts, schemas, source hashes, and checksums as exact acceptance criteria; treat timings and model outputs as measurements to compare with the committed row-level evidence, not byte-identical golden outputs.
 
 ## Score owned examples
