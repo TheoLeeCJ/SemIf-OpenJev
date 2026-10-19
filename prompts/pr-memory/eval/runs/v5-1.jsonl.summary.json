@@ -1,0 +1,26 @@
+{
+  "records": 30,
+  "format_errors": 0,
+  "rejected_actions": 5,
+  "precision": 0.941,
+  "recall": 0.696,
+  "privacy_high_recall": "8/9",
+  "date_accuracy": "11/12",
+  "noop_records_with_extra_actions": "0/3",
+  "by_action": {
+    "ABANDONED:hit": 1,
+    "CONFIRM:hit": 3,
+    "CONFIRM:miss": 4,
+    "NEW:extra": 2,
+    "NEW:hit": 36,
+    "NEW:miss": 13,
+    "REMOVE:hit": 3,
+    "REMOVE:miss": 2,
+    "RESOLVED:hit": 1,
+    "RESOLVED:miss": 2,
+    "UPDATE:extra": 1,
+    "UPDATE:hit": 4
+  },
+  "model": "gpt-4.1",
+  "prompt": "v5"
+}
