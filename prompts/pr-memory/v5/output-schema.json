@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pr-memory/v5/output-schema.json",
+  "title": "Healix memory EXTRACT output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scratchpad", "actions"],
+  "properties": {
+    "scratchpad": {"type": "string"},
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action", "memory_type", "target_id", "fact", "evidence", "reason",
+          "intent_status", "pillar", "privacy_level", "user_explicit", "memorability",
+          "stability", "anchor_date", "granularity", "due_date", "due_granularity"
+        ],
+        "properties": {
+          "action": {"enum": ["NEW", "CONFIRM", "UPDATE", "REMOVE", "RESOLVED", "ABANDONED"]},
+          "memory_type": {"enum": ["profile", "episodic", "intent"]},
+          "target_id": {"type": ["string", "null"]},
+          "fact": {"type": ["string", "null"]},
+          "evidence": {"type": "string"},
+          "reason": {"enum": ["change", "correction", "no_longer_true", "user_requested", "incorrect", null]},
+          "intent_status": {"enum": ["active", "paused", null]},
+          "pillar": {"enum": ["energy", "sleep", "activity", "nutrition_food", "stress", "physiological", "lifestyle", "other", null]},
+          "privacy_level": {"enum": ["HIGH", "LOW", null]},
+          "user_explicit": {"type": "boolean"},
+          "memorability": {"enum": ["high", "medium", "low", null]},
+          "stability": {"enum": ["stable", "moderate", "dynamic", null]},
+          "anchor_date": {"type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+          "granularity": {"enum": ["day", "month", "year", null]},
+          "due_date": {"type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+          "due_granularity": {"enum": ["day", "month", "year", null]}
+        }
+      }
+    }
+  }
+}
