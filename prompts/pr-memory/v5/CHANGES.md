@@ -65,3 +65,7 @@ JSON Schema 只约束字段与枚举。以下跨字段规则需在校验层实�
 - RESOLVED/ABANDONED 只能作用于 INTENT;INTENT 的 REMOVE 只允许 `user_requested` / `incorrect`
 - UPDATE 不得把 `privacy_level` 从 HIGH 降为 LOW
 - `evidence` 是某个 User 轮次的子串
+
+上述规则已在 `extract_validator.py` 中实现(仅用标准库),单测见 `test_extract_validator.py`。
+运行方式:`pytest -q prompts/pr-memory/v5`(该目录不在仓库默认 `testpaths` 中,需显式指定路径)。
+`validate_output()` 返回可交给 APPLY 的 `valid` 与写入 `extract_rejects` 的 `rejects`;整体无法解析时抛出 `OutputFormatError`。同一条目被多个动作指向时,这些动作全部拒绝。
