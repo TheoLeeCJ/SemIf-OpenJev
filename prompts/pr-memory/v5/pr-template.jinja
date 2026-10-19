@@ -73,13 +73,14 @@ This conversation is one segment of a longer transcript. Judge only what is in t
 2. EPISODIC: something that happened to the user or that the user did, on or before SESSION_DATE.
    - Workouts, notable meals, symptoms, illnesses, bad nights of sleep, stressful events, medical visits, diagnoses, surgeries, milestones
    - Short-term conditions lasting days or weeks are EPISODIC, not PROFILE: "User had a cold", "User sprained their ankle", "User felt exhausted"
+   - One-off is what EPISODIC means. "One-off", "not enduring" or "not PROFILE" is never a reason to skip a dated health-relevant event: a single night's sleep, a tired or stressful day, a day's water intake, one workout or one skipped workout. Store it with low memorability.
    - Needs a date resolvable at least to the year (see DATES). An event with no recoverable date is not EPISODIC.
    - Skip events with no relevance to health coaching ("User went to the store").
 
 3. INTENT: something the user has committed to do or achieve after SESSION_DATE.
    - Goals: "User wants to lose 5 kg", "User plans to meditate daily"
    - Efforts under way but not yet habits: "User is trying to sleep before 11 PM"
-   - Scheduled future events: "User has a dentist appointment" (with its due date)
+   - Scheduled future events: "User has a dentist appointment" (with its due date). A booking or appointment the user mentions ("I booked an extra session this thursday", "I have an appointment next week") is INTENT even without "I want" or "I plan". Something that has not happened yet is never EPISODIC.
    - Must name a concrete behavior, outcome, or scheduled event. "eat more vegetables", "eat healthier", "run a marathon" qualify. "stay motivated", "feel better", "be healthier" do not.
    - Skip plans that start and finish on SESSION_DATE itself ("I'll go to bed early tonight", "I'm trying the fan tonight").
 
@@ -92,11 +93,15 @@ Same topic, different types:
 - "I want to run 10 km" → INTENT
 - "I consider myself a morning person" → PROFILE
 - "I feel tired today" → EPISODIC
+- "I slept 7 hours last night" → EPISODIC
+- "I'm stressed about work this week" → EPISODIC (LOW privacy)
+- "I skipped my workout on Wednesday" → EPISODIC
 - "I feel motivated to exercise" → skip (no concrete behavior)
 - "I eat healthy" → PROFILE
 - "I'm trying to eat healthier" → INTENT
 - "I ate a salad for lunch" → EPISODIC (low memorability)
 - "I have diabetes" → PROFILE
+- "I drink 2 cans of soda a day, I'm going to stop" → PROFILE (current habit) + INTENT (goal). A goal to change a habit does not replace the habit itself.
 - "I was diagnosed with diabetes last year" → PROFILE + EPISODIC (see DOUBLE_WRITE)
 - "I want to manage my diabetes better" → INTENT
 </MEMORY_TYPES>
@@ -106,6 +111,7 @@ A diagnosis or a surgery produces two NEW actions: an EPISODIC item for the even
 - "I was diagnosed with type 2 diabetes in May" → EPISODIC "User was diagnosed with type 2 diabetes" (May) + PROFILE "User has type 2 diabetes"
 - "I had my gallbladder removed in March" → EPISODIC "User had their gallbladder removed" (March) + PROFILE "User has no gallbladder"
 If the PROFILE state already exists, CONFIRM it instead of creating it. If no date can be resolved, output only the PROFILE item. This is the only case where one statement produces two NEW items.
+The same applies to a dated change in a health behavior that UPDATEs or REMOVEs a PROFILE item: "I quit smoking 3 weeks ago" → UPDATE "User smokes" to "User is a former smoker" + NEW EPISODIC "User quit smoking" (month). Without a date ("I stopped running already"), output only the PROFILE action.
 </DOUBLE_WRITE>
 
 <DO_NOT_STORE>
@@ -124,6 +130,7 @@ If the PROFILE state already exists, CONFIRM it instead of creating it. If no da
 <COMMITMENT>
 INTENT needs a commitment in the user's own words:
 - Valid: "I want to X", "I plan to X", "I will X", "I'm going to X", "My goal is X", "I'm trying to X", "I'll try to X", where X is concrete. "Try to X" is an attempt, not indecision; only a bare "I'll try" in reply to a suggestion is an acknowledgment.
+- A booked or scheduled event stated as fact ("I booked X", "I have an appointment", "my surgery is on Monday") is a commitment.
 - Agreeing to a specific plan the assistant proposed ("Yes, let's start the 3-week swim plan") is valid INTENT with user_explicit = false.
 - Undecided language is never INTENT.
 </COMMITMENT>
@@ -141,7 +148,9 @@ Compare everything the user says with the existing items before creating anythin
 - CONFIRM: the user restates or mentions an existing item without changing it.
   * PROFILE: "I'm still vegetarian" → CONFIRM.
   * EPISODIC: the same occurrence mentioned again → CONFIRM. A new occurrence of a similar thing ("ran again today") is NEW.
-  * INTENT: the user reaffirms the goal. This also revives an expired INTENT that has no due date.
+  * INTENT: the user reaffirms the goal or reports progress on it ("still working on it!", "I'm done with soda"). This also revives an expired INTENT that has no due date.
+  * The user restates an item in their own words, even briefly in reply to an assistant question ("still 6am", "still doing mondays and wednesdays as usual"): CONFIRM it. A bare "yeah" or "that sounds right" to an assistant summary of goals or data restates nothing: store nothing from it. A dated progress event ("got to 1.5 liters yesterday") is also NEW EPISODIC.
+  * One action per target_id. When several quotes support the same item, output one action with the clearest quote; the validator rejects every action on a target that has more than one.
 - UPDATE: an existing item's content changes. Give the full replacement fact and all attributes.
   * reason = "change" when it was true and has changed: switched medication, new bedtime, different running day.
   * reason = "correction" when it was wrong: the user corrects it, the date was wrong.
@@ -152,7 +161,7 @@ Compare everything the user says with the existing items before creating anythin
   * reason = "user_requested": the user asks you to forget it or not to remember it. Then do not store it anywhere else either.
   * reason = "incorrect": the user says it was never true or not about them.
   * For INTENT use REMOVE only with "user_requested" or "incorrect". A goal the user stops pursuing is ABANDONED.
-- RESOLVED (INTENT only): the goal was achieved or the scheduled event happened. If the user describes the event ("I saw the dentist on Friday"), put it in fact with anchor_date and granularity; the system stores it as an EPISODIC item. Do not emit a separate NEW EPISODIC for the same event.
+- RESOLVED (INTENT only): the goal was achieved or the scheduled event happened. Before creating a NEW EPISODIC for a past event, check EXISTING_INTENT_ITEMS: if the event is the one an INTENT scheduled or aimed at, it is RESOLVED, not NEW. "did the thursday session yesterday" with "User has an extra training session booked" → RESOLVED. "saw my doctor on monday" with "User has a doctor appointment" → RESOLVED, even if the visit changed nothing. If the user describes the event ("I saw the dentist on Friday"), put it in fact with anchor_date and granularity; the system stores it as an EPISODIC item. Do not emit a separate NEW EPISODIC for the same event.
 - ABANDONED (INTENT only): the user says they are no longer pursuing it.
 - MERGE belongs to the capacity process. Never output it.
 
@@ -162,7 +171,7 @@ Reversals:
 - Stopping ("stopped", "quit", "no longer", "gave up", "don't anymore") → REMOVE a PROFILE item, ABANDONED an INTENT. When a meaningful new state replaces the old one, UPDATE instead: "I quit smoking" → UPDATE "User smokes" to "User is a former smoker", reason "change".
 - Restarting or clearance ("again", "resumed", "back to", "cleared to"): "My doctor cleared me to run" → REMOVE "User cannot run because of a knee injury", reason "no_longer_true". "Back to a 10 PM bedtime" → UPDATE the bedtime item.
 - Resolved temporary issue: "My knee is fine now" → REMOVE the knee-injury PROFILE item, reason "no_longer_true".
-- Exception, not reversal: a one-off lapse does not change PROFILE. "I ate meat at a party yesterday" leaves "User is vegetarian" untouched. "I gave up being vegetarian" → REMOVE.
+- Exception, not reversal: a one-off lapse does not change PROFILE. "I ate meat at a party yesterday" leaves "User is vegetarian" untouched; the dated lapse itself is NEW EPISODIC. "I gave up being vegetarian" → REMOVE.
 - Both true: existing "User plays volleyball" + "I started swimming" → keep the first, NEW "User swims".
 - Denial: a "no" to an assistant question about an existing item ("Are you still taking metformin?" "No.") → REMOVE or UPDATE with user_explicit = false. A denial never creates a NEW item.
 </ACTIONS>
@@ -177,9 +186,9 @@ Reversals:
 <DATES>
 Resolve relative time against SESSION_DATE, or against a turn's timestamp when it has one. Write dates as YYYY-MM-DD. A month is written as its first day (2026-09-01) and a year as January 1 (2026-01-01); the granularity field says which.
 - "day": the day is known ("yesterday", "this morning", "on Friday", "Oct 3"). Something described as just happening ("I just finished a 5k") is SESSION_DATE.
-- "month": only the month is known, or the day is uncertain ("last week", "a few days ago", "earlier this month", "in September"). Use the month in which the event most likely fell.
+- "month": only the month is known, or the day is uncertain ("last week", "this week", "next week", "a few days ago", "earlier this month", "in September"). Use the month in which the event most likely fell.
 - "year": only the year is known ("last year", "in 2019").
-- Never invent precision the user did not give.
+- Never invent precision the user did not give. There is no "week" granularity.
 - EPISODIC: anchor_date is required and must be on or before SESSION_DATE. Anything that has not happened yet is INTENT.
 - INTENT: due_date is the deadline, appointment date, or end of a time-boxed plan, with due_granularity ("swim every Monday for 3 weeks starting Oct 14" → due 2026-11-04, "day"). It must be on or after SESSION_DATE. Open-ended goals have due_date = null and due_granularity = null.
 </DATES>
@@ -219,7 +228,7 @@ On UPDATE, never lower an item from HIGH to LOW.
 - high: conditions, allergies, medications, safety-relevant restrictions, core identity (vegetarian, night shifts, has children), major goals (lose significant weight, run a marathon, manage a condition), diagnoses and surgeries
 - medium: regular routines, preferences that shape recommendations, moderate goals, notable events a coach would follow up on
 - low: one-off everyday events (ate pizza), minor preferences, details unlikely to matter in a few weeks
-When unsure, choose medium.
+When unsure, choose medium. ("moderate" is a stability value, not a memorability value.)
 </MEMORABILITY>
 
 <STABILITY>
@@ -232,8 +241,8 @@ Only INTENT items carry stability. PROFILE and EPISODIC items use null.
 <PROCESS>
 1. Find each User statement that might be a memory and note its exact quote.
 2. Drop anything covered by DO_NOT_STORE.
-3. Match the rest against existing items: CONFIRM, UPDATE, REMOVE, RESOLVED or ABANDONED.
-4. Classify what is left as NEW: a future commitment is INTENT, a dated past event is EPISODIC, an enduring trait is PROFILE, a diagnosis or surgery is both.
+3. Match the rest against existing items: CONFIRM, UPDATE, REMOVE, RESOLVED or ABANDONED. For every past event, check whether it fulfills an existing INTENT.
+4. Classify what is left as NEW: a future commitment or booking is INTENT, a dated past event is EPISODIC, an enduring trait is PROFILE, a diagnosis or surgery is both.
 5. Fill in attributes and dates.
 In scratchpad, write one short line per candidate, including dropped ones and why. Keep it brief.
 </PROCESS>
@@ -290,6 +299,7 @@ Fields by action:
 - NEW: target_id null. fact, pillar, privacy_level, memorability required. EPISODIC requires anchor_date and granularity. INTENT requires stability; due_date and due_granularity when time-bound. reason and intent_status null.
 - UPDATE: target_id required. reason "change" or "correction". fact and all attributes hold the full new values. intent_status "active" or "paused" only when changing an INTENT's status.
 - CONFIRM, ABANDONED: target_id required. All other optional fields null.
+- user_explicit is always true or false, never null, for every action.
 - REMOVE: target_id required. reason "no_longer_true", "user_requested" or "incorrect". All other optional fields null.
 - RESOLVED: target_id required. If the user described the resolving event, fill fact, pillar, privacy_level, memorability, anchor_date and granularity for it; otherwise null.
 - memory_type is the type of the item, or of the target item for actions with a target_id.

@@ -69,3 +69,30 @@ JSON Schema 只约束字段与枚举。以下跨字段规则需在校验层实�
 上述规则已在 `extract_validator.py` 中实现(仅用标准库),单测见 `test_extract_validator.py`。
 运行方式:`pytest -q prompts/pr-memory/v5`(该目录不在仓库默认 `testpaths` 中,需显式指定路径)。
 `validate_output()` 返回可交给 APPLY 的 `valid` 与写入 `extract_rejects` 的 `rejects`;整体无法解析时抛出 `OutputFormatError`。同一条目被多个动作指向时,这些动作全部拒绝。
+
+## 评测后修订(runs/v5-1 → v5-3,gpt-4.1,30 条合成对话)
+
+v5-1 的错误按影响排序(漏 = 漏提取,拒 = 被校验层拒绝):
+
+| # | 问题 | v5-1 | 例子 | 本次处理 |
+|---|------|------|------|---------|
+| 1 | 有日期的一次性事件被当成"不持久"跳过 | 漏 7 | c002 翘课、c006 睡了 7 小时、c019 戒烟日期、c026 喝了 1.5 升、c027 疲惫/压力 | 已修 |
+| 2 | CONFIRM 漏掉或被拒 | 漏 4、拒 3 | c003 `user_explicit: null`、c009 两条 CONFIRM 指向同一条目、c022 "still 6am"、c026 "still working on it" | 已修 |
+| 3 | 预约/预订没有成为 INTENT,完成后没有 RESOLVED | 漏 4、拒 1 | c003 预订被写成未来日期的 EPISODIC、c013 "appointment next week"、c004/c014 完成预约却发 NEW 或跳过 | 已修 |
+| 4 | 和目标一起说出的现有习惯、厌恶被丢掉 | 漏 3 | c001 缺乏动力、c008 每天 2 罐汽水、c029 讨厌健身房 | 部分(加了习惯 + 目标示例) |
+| 5 | 停止习惯用 UPDATE 代替 REMOVE | 漏 2、多 1 | c014 停跑、c009 "5 days no soda" 未 REMOVE 汽水习惯 | 未处理 |
+| 6 | 新的计划性日程与已有 PROFILE 混淆 | 漏 1、拒 1 | c022 和姐姐周一周四去健身房 | 未处理 |
+
+prompt 修改:
+1. EPISODIC:一次性正是 EPISODIC 的含义,"不持久 / 不是 PROFILE"不是跳过理由;补充睡眠、压力、翘课示例;有日期的健康行为改变(戒烟)= UPDATE/REMOVE PROFILE + NEW EPISODIC;一次性破例本身记为 EPISODIC。
+2. CONFIRM:进展汇报算 CONFIRM INTENT;用户用自己的话简短重述算 CONFIRM,但对助手总结的一句 "yeah" 不算;同一 target_id 只输出一个动作;`user_explicit` 永远是布尔值。
+3. INTENT:用户陈述的预订/预约本身就是承诺;未来事件永远不是 EPISODIC;新建过去事件前先查是否完成了某条已有 INTENT,是则 RESOLVED。
+4. 附带修复首轮修改带来的回归:日期没有 week 粒度("this week / next week" 归 month);memorability 不接受 "moderate";现有习惯 + 改变目标拆成 PROFILE + INTENT。
+
+| 运行 | precision | recall | 被拒 | noop 误提取 |
+|------|-----------|--------|------|------------|
+| v5-1(修改前) | 0.941 | 0.696 | 5 | 0/3 |
+| v5-2(首轮修改) | 0.897 | 0.884 | 2 | 2/3 |
+| v5-3(本版) | 0.912 | 0.899 | 0 | 0/3 |
+
+每个版本只跑了一次,temperature 0 下仍有波动(c025 时漏时中)。NEW 只按类型计数匹配,事实内容需人工看结果文件。
